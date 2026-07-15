@@ -83,6 +83,7 @@ export const prometheusProfile: VendorProfileModule<ResolvedPrometheusConfig> = 
     // Cast the literal to the SDK-derived metrics union (safest across versions).
     const metrics = {
       prometheus: { bindAddress: resolved.bindAddress },
+      attachServiceName: false,
     } as MetricsTelemetryOptions;
     return withGlobalTags(metrics, commonTags);
   },

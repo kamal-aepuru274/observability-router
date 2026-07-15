@@ -5,13 +5,13 @@ import { ObservabilityConfigError } from './errors';
 export const KNOWN_VENDOR_PROFILES: readonly VendorProfile[] = [
   'prometheus',
   'otel',
-  'dynatrace',
   'sumologic',
+  'dynatrace',
   'dynatrace-oneagent',
 ];
 
 /** Profiles that are actually implemented in this version. */
-export const IMPLEMENTED_VENDOR_PROFILES: readonly VendorProfile[] = ['prometheus', 'otel'];
+export const IMPLEMENTED_VENDOR_PROFILES: readonly VendorProfile[] = ['prometheus', 'otel', 'sumologic'];
 
 const ROUTING_MODES: readonly RoutingMode[] = ['direct', 'collector'];
 const CONFIG_SOURCES: readonly ConfigSource[] = ['env', 'inline'];

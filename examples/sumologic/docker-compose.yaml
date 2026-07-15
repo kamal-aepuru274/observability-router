@@ -1,0 +1,21 @@
+# OpenTelemetry Collector configured to forward metrics to Sumo Logic.
+#
+# Replace the placeholder endpoint in collector-config.yaml with your real
+# Sumo Logic HTTP Source URL before starting.
+#
+# Run:
+#   docker compose -f examples/sumologic/docker-compose.yaml up
+#
+# Then start a worker with vendorProfile: 'sumologic' and
+#   TEMPORAL_OBSERVABILITY_SUMOLOGIC_OTLP_ENDPOINT=http://localhost:4318/v1/metrics
+#   TEMPORAL_OBSERVABILITY_OTLP_PROTOCOL=http
+
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ['--config=/etc/otelcol-contrib/config.yaml']
+    volumes:
+      - ./collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - '4317:4317' # OTLP/gRPC
+      - '4318:4318' # OTLP/HTTP

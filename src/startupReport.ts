@@ -5,7 +5,7 @@ export interface BuildStartupReportInput {
   base: NormalizedBaseConfig;
   exporter: StartupReport['exporter'];
   metricsEndpoint: string;
-  runtimeInstallation: 'new' | 'existing';
+  runtimeInstallStatus: 'installed' | 'already_installed';
   /** Profile-specific safe fields (e.g. otlpProtocol, headersConfigured). */
   extras?: Partial<StartupReport>;
 }
@@ -16,7 +16,7 @@ export interface BuildStartupReportInput {
  * tokens, headers, or credentials.
  */
 export function buildStartupReport(input: BuildStartupReportInput): StartupReport {
-  const { base, exporter, metricsEndpoint, runtimeInstallation, extras } = input;
+  const { base, exporter, metricsEndpoint, runtimeInstallStatus, extras } = input;
   return {
     serviceName: base.serviceName,
     environment: base.environment,
@@ -29,6 +29,6 @@ export function buildStartupReport(input: BuildStartupReportInput): StartupRepor
     metricsEndpoint,
     ...extras,
     commonTags: { ...base.commonTags },
-    runtimeInstallation,
+    runtimeInstallStatus,
   };
 }

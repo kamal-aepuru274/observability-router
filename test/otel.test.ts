@@ -297,8 +297,8 @@ describe('otel runtime install safety', () => {
     });
 
     expect(install).toHaveBeenCalledTimes(1);
-    expect(first.startupReport().runtimeInstallation).toBe('new');
-    expect(second.startupReport().runtimeInstallation).toBe('existing');
+    expect(first.startupReport().runtimeInstallStatus).toBe('installed');
+    expect(second.startupReport().runtimeInstallStatus).toBe('already_installed');
   });
 
   it('conflicting OTEL endpoint throws', () => {
@@ -390,7 +390,7 @@ describe('otel telemetry options shape', () => {
       ['http', 'metricsExportInterval', 'url'].sort()
     );
     expect(telemetry.metrics.globalTags).toEqual({
-      app_service_name: 'payment-worker',
+      service_name: 'payment-worker',
       environment: 'prod',
       namespace: 'payments',
       task_queue: 'payment-tasks',

@@ -8,7 +8,8 @@ to an observability backend consistently across services.
 - Validates a tiny, beginner-friendly config.
 - Configures the Temporal SDK's global Runtime telemetry (`Runtime.install(...)`)
   correctly, safely, and exactly once per process.
-- Routes metrics to **Prometheus** (scrape) or any **OTLP** endpoint (push).
+- Routes metrics to **Prometheus** (scrape) or any **OTLP** endpoint (push),
+  including **Sumo Logic** as a named vendor profile.
 - Attaches safe, low-cardinality common tags.
 - Returns a secret-free startup report you can log.
 
@@ -33,28 +34,31 @@ Temporal Worker emits SDK metrics
 |---|---|
 | `prometheus` | ✅ implemented (v1) |
 | `otel` | ✅ implemented (v2, generic OTLP export) |
+| `sumologic` | ✅ implemented (uses OTLP internally) |
 | `dynatrace` | declared, not implemented |
-| `sumologic` | declared, not implemented |
 | `dynatrace-oneagent` | declared, not implemented |
 
 Unsupported profiles throw `UnsupportedVendorProfileError` with a clear message.
 
-### Why `otel` before Dynatrace/Sumo profiles?
+### Why `otel` first, then `sumologic`?
 
 Dynatrace and Sumo Logic both ingest standard OTLP. A generic `otel` profile
-already covers them today: point the worker (or your Collector) at their OTLP
-ingest endpoint and set auth headers via env. Vendor-named profiles would only
-add naming conveniences and vendor-specific validation — worth doing later, but
-not required to ship metrics. Implementing OTLP once also means every future
-vendor profile is a thin preset on top of a tested transport, instead of a
-custom integration.
+already covers them: point the worker (or your Collector) at their OTLP ingest
+endpoint and set auth headers via env. `sumologic` is now a thin vendor preset
+that reuses the same OTLP implementation and adds Sumo-specific env var
+precedence. Every future vendor profile (e.g. Dynatrace) can follow the same
+pattern: a high-level profile that resolves vendor-specific values and delegates
+to the proven OTLP builder.
 
 ### Why we never implement custom vendor APIs
 
 The Temporal SDK Core already speaks OTLP natively. Calling vendor ingest APIs
 ourselves would mean re-collecting and re-converting metrics — duplicated,
-fragile machinery that OpenTelemetry already standardizes. Anything
-OTLP-compatible works with `vendorProfile: 'otel'` today.
+fragile machinery that OpenTelemetry already standardizes. `vendorProfile: 'sumologic'`
+does not call Sumo Logic APIs, batch data, or build custom upload logic. It
+only resolves Sumo-specific OTLP endpoint/protocol/headers and hands the rest to
+the Temporal SDK Core, which exports standard OTLP. Anything OTLP-compatible
+works with `vendorProfile: 'otel'` or `vendorProfile: 'sumologic'` today.
 
 ## Install
 
@@ -140,7 +144,46 @@ TEMPORAL_OBSERVABILITY_OTLP_HEADERS="Authorization=Bearer <token>"
 TEMPORAL_OBSERVABILITY_OTLP_PROTOCOL=http
 ```
 
-The OTEL startup report is secret-safe:
+### Sumo Logic via Collector
+
+```ts
+const obs = attachTemporalObservability({
+  serviceName: 'payment-worker',
+  environment: 'prod',
+  namespace: 'payments',
+  taskQueue: 'payment-tasks',
+  vendorProfile: 'sumologic',
+  routingMode: 'collector',
+  configSource: 'env',
+});
+```
+
+```bash
+TEMPORAL_OBSERVABILITY_SUMOLOGIC_OTLP_ENDPOINT=http://localhost:4318/v1/metrics
+TEMPORAL_OBSERVABILITY_OTLP_PROTOCOL=http
+```
+
+### Sumo Logic direct OTLP
+
+```ts
+const obs = attachTemporalObservability({
+  serviceName: 'payment-worker',
+  environment: 'prod',
+  namespace: 'payments',
+  taskQueue: 'payment-tasks',
+  vendorProfile: 'sumologic',
+  routingMode: 'direct',
+  configSource: 'env',
+});
+```
+
+```bash
+TEMPORAL_OBSERVABILITY_SUMOLOGIC_OTLP_ENDPOINT=https://your-sumo-otlp-http-source-endpoint
+TEMPORAL_OBSERVABILITY_SUMOLOGIC_OTLP_HEADERS="x-sumo-category=temporal-workers"
+TEMPORAL_OBSERVABILITY_OTLP_PROTOCOL=http
+```
+
+Never hardcode real URLs or tokens. The startup report is secret-safe:
 
 ```
 exporter: otlp
@@ -150,7 +193,7 @@ otlpEndpoint: http://localhost:4318/v1/metrics
 otlpProtocol: http
 headersConfigured: true
 metricsExportIntervalMs: 10000
-runtimeInstallation: new | existing
+runtimeInstallStatus: installed | already_installed
 ```
 
 ### Collector mode vs direct mode
@@ -159,8 +202,10 @@ runtimeInstallation: new | existing
   (e.g. `http://localhost:4318/v1/metrics` or `http://localhost:4317`), which
   handles fan-out, retries, and vendor auth. Recommended for production.
 - **`direct`** — worker pushes OTLP straight to an OTLP-compatible backend.
-  Auth headers usually required. The wire format is still plain OTLP; the
+  Auth headers are usually required. The wire format is still plain OTLP; the
   library never calls vendor APIs.
+  - For `sumologic` direct mode, the worker pushes to a Sumo Logic OTLP HTTP
+    Source and headers such as `x-sumo-category` can be used.
 
 ### Config fields
 
@@ -170,16 +215,16 @@ runtimeInstallation: new | existing
 | `environment` | yes | – | dev / qa / staging / prod |
 | `namespace` | yes | – | Temporal namespace |
 | `taskQueue` | yes | – | Temporal task queue |
-| `vendorProfile` | yes | – | `prometheus`, `otel`, or a declared future profile |
+| `vendorProfile` | yes | – | `prometheus`, `otel`, `sumologic`, or a declared future profile |
 | `routingMode` | no | `direct` | `direct` or `collector` |
 | `configSource` | no | `inline` | `env` or `inline` (recorded in report) |
 | `prometheus.bindAddress` | no | see below | inline Prometheus bind address |
-| `otlpEndpoint` | otel: yes* | – | OTLP endpoint (inline or via env, see below) |
+| `otlpEndpoint` | otel/sumologic: yes* | – | OTLP endpoint (inline or via env, see below) |
 | `otlpProtocol` | no | `http` | `http` or `grpc` |
 | `otlpHeaders` | no | – | OTLP request headers (never logged) |
 | `metricsExportIntervalMs` | no | `10000` | positive number of milliseconds |
 
-\* required for `vendorProfile: 'otel'`, but may come from env vars instead of inline.
+\* required for `vendorProfile: 'otel'` or `vendorProfile: 'sumologic'`, but may come from env vars instead of inline.
 
 ### Prometheus bind address resolution
 
@@ -198,9 +243,18 @@ Priority: **inline → env var → default**.
 | headers | `otlpHeaders` → `TEMPORAL_OBSERVABILITY_OTLP_HEADERS` → `OTEL_EXPORTER_OTLP_HEADERS` | none |
 | export interval | `metricsExportIntervalMs` → `TEMPORAL_OBSERVABILITY_METRICS_EXPORT_INTERVAL_MS` → `OTEL_METRIC_EXPORT_INTERVAL` | `10000` ms |
 
+### OTLP resolution (vendorProfile: 'sumologic')
+
+| Value | Priority (highest first) | Default |
+|---|---|---|
+| endpoint | `otlpEndpoint` → `TEMPORAL_OBSERVABILITY_SUMOLOGIC_OTLP_ENDPOINT` → `TEMPORAL_OBSERVABILITY_OTLP_ENDPOINT` → `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` → `OTEL_EXPORTER_OTLP_ENDPOINT` | **required** |
+| protocol | `otlpProtocol` → `TEMPORAL_OBSERVABILITY_SUMOLOGIC_OTLP_PROTOCOL` → `TEMPORAL_OBSERVABILITY_OTLP_PROTOCOL` → `OTEL_EXPORTER_OTLP_PROTOCOL` | `http` |
+| headers | `otlpHeaders` → `TEMPORAL_OBSERVABILITY_SUMOLOGIC_OTLP_HEADERS` → `TEMPORAL_OBSERVABILITY_OTLP_HEADERS` → `OTEL_EXPORTER_OTLP_HEADERS` | none |
+| export interval | `metricsExportIntervalMs` → `TEMPORAL_OBSERVABILITY_SUMOLOGIC_METRICS_EXPORT_INTERVAL_MS` → `TEMPORAL_OBSERVABILITY_METRICS_EXPORT_INTERVAL_MS` → `OTEL_METRIC_EXPORT_INTERVAL` | `10000` ms |
+
 Notes:
 
-- Env header format: `Authorization=Bearer abc123,x-api-key=xyz`.
+- Env header format: `Authorization=Bearer abc123,x-api-key=xyz` or `x-sumo-category=temporal-workers,Authorization=Bearer abc123`.
 - Standard OTEL protocol values `http/protobuf` and `http/json` normalize to `http`.
 - The Temporal SDK notes that if `OTEL_EXPORTER_OTLP_ENDPOINT` is set, SDK Core
   itself may honor it over the configured URL — keep env and inline values
@@ -209,21 +263,23 @@ Notes:
 ### Common metric tags
 
 These low-cardinality tags are attached to every metric:
-`app_service_name`, `environment`, `namespace`, `task_queue`, `vendor_profile`, `routing_mode`.
+`service_name`, `environment`, `namespace`, `task_queue`, `vendor_profile`, `routing_mode`.
 
 High-cardinality values (workflowId, runId, orderId, userId, ...) are never added.
 
-> Note: the SDK option for global tags (`globalTags`) is version-dependent. The
-> library attaches it defensively so it compiles on all supported SDK versions;
-> the critical `prometheus.bindAddress` option is stable and always applies.
+> Note: the Temporal SDK also adds a `service_name` tag by default (value
+> `temporal-core-sdk`). The library disables that default (`attachServiceName: false`)
+> so the `service_name` tag matches the configured `serviceName` instead.
+> The `globalTags` option is version-dependent; the library attaches it defensively
+> so it compiles on all supported SDK versions.
 
 ### Runtime install safety
 
 `Runtime.install()` is global/singleton-like. The library tracks installation
 per process:
 
-- Same config again (prometheus or otel) → no-op, report shows
-  `runtimeInstallation: 'existing'`.
+- Same config again (prometheus, otel, or sumologic) → no-op, report shows
+  `runtimeInstallStatus: 'already_installed'`.
 - Different config (different profile, endpoint, protocol, or headers) → throws
   `RuntimeInstallConflictError` saying the Temporal Runtime telemetry is
   already installed with a different observability config.
@@ -257,7 +313,7 @@ curl http://localhost:9464/metrics
 ```
 
 You should see Temporal SDK metrics (e.g. `temporal_worker_task_slots_available`)
-tagged with `app_service_name`, `environment`, `namespace`, `task_queue`,
+tagged with `service_name`, `environment`, `namespace`, `task_queue`,
 `vendor_profile`, `routing_mode`.
 
 ## Verify OTEL locally (Collector debug exporter)
@@ -282,6 +338,46 @@ tagged with `app_service_name`, `environment`, `namespace`, `task_queue`,
 
 3. Watch Temporal SDK metrics appear in the Collector's console (debug) output.
 
+## Verify Sumo Logic locally (OTEL Collector debug exporter)
+
+1. Start the debug OpenTelemetry Collector:
+
+   ```bash
+   docker compose -f examples/otel-collector/docker-compose.yaml up
+   ```
+
+2. Run the Sumo Logic collector-mode example:
+
+   ```bash
+   TEMPORAL_OBSERVABILITY_SUMOLOGIC_OTLP_ENDPOINT=http://localhost:4318/v1/metrics \
+   TEMPORAL_OBSERVABILITY_OTLP_PROTOCOL=http \
+   npx tsx examples/payment/worker-sumologic-collector.ts
+   ```
+
+3. Confirm metrics appear in the Collector's console (debug) output. This proves
+   the worker is emitting OTLP correctly and the only remaining step is to point
+   the Collector at Sumo Logic.
+
+## Verify Sumo Logic direct OTLP export
+
+1. Create a Sumo Logic OTLP HTTP Source and obtain the endpoint URL.
+2. Set the endpoint in env (never inline):
+
+   ```bash
+   TEMPORAL_OBSERVABILITY_SUMOLOGIC_OTLP_ENDPOINT=https://your-sumo-otlp-http-source-endpoint
+   TEMPORAL_OBSERVABILITY_SUMOLOGIC_OTLP_HEADERS="x-sumo-category=temporal-workers"
+   TEMPORAL_OBSERVABILITY_OTLP_PROTOCOL=http
+   ```
+
+3. Run the direct-mode example:
+
+   ```bash
+   npx tsx examples/payment/worker-sumologic-direct.ts
+   ```
+
+4. Verify metrics appear in Sumo Logic. The library does not call Sumo Logic
+   APIs; the Temporal SDK Core pushes plain OTLP to the configured endpoint.
+
 ## Roadmap
 
 ### `dynatrace` (not implemented yet)
@@ -291,11 +387,10 @@ Dynatrace OTLP endpoint (with an `Authorization: Api-Token …` header via env)
 works today. A dedicated profile would only add endpoint/token conveniences and
 validation, so it is deferred until teams need it.
 
-### `sumologic` (not implemented yet)
+### `sumologic` (implemented)
 
-Same reasoning: Sumo Logic accepts OTLP (typically via a Collector, i.e.
-`routingMode: 'collector'`). Generic `otel` covers it; a named profile would be
-a thin preset and is deferred.
+Implemented as a thin OTLP preset. See `vendorProfile: 'sumologic'` and the
+Sumo-specific env var precedence above.
 
 ### `dynatrace-oneagent` (not implemented yet)
 

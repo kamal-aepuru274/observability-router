@@ -52,7 +52,7 @@ export function attachTemporalObservability(
     base,
     exporter: profile.exporter ?? 'prometheus',
     metricsEndpoint: profile.describeTarget(resolved),
-    runtimeInstallation: installResult.status,
+    runtimeInstallStatus: installResult.status,
     extras: profile.reportExtras?.(resolved),
   });
 

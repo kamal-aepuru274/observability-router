@@ -9,8 +9,8 @@ import type { WorkerOptions } from '@temporalio/worker';
 export type VendorProfile =
   | 'prometheus'
   | 'otel'
-  | 'dynatrace'
   | 'sumologic'
+  | 'dynatrace'
   | 'dynatrace-oneagent';
 
 /**
@@ -50,25 +50,26 @@ export interface ObservabilityConfig {
   prometheus?: PrometheusInlineConfig;
 
   /**
-   * OTLP endpoint for `vendorProfile: 'otel'`.
+   * OTLP endpoint for `vendorProfile: 'otel'` or `vendorProfile: 'sumologic'`.
    * e.g. "http://localhost:4318/v1/metrics" (http) or "http://localhost:4317" (grpc).
-   * Resolution: inline > TEMPORAL_OBSERVABILITY_OTLP_ENDPOINT >
+   * Resolution: inline > profile-specific env var > TEMPORAL_OBSERVABILITY_OTLP_ENDPOINT >
    * OTEL_EXPORTER_OTLP_METRICS_ENDPOINT > OTEL_EXPORTER_OTLP_ENDPOINT.
    */
   otlpEndpoint?: string;
   /**
-   * OTLP protocol. Resolution: inline > TEMPORAL_OBSERVABILITY_OTLP_PROTOCOL >
-   * OTEL_EXPORTER_OTLP_PROTOCOL > default "http".
+   * OTLP protocol. Resolution: inline > profile-specific env var >
+   * TEMPORAL_OBSERVABILITY_OTLP_PROTOCOL > OTEL_EXPORTER_OTLP_PROTOCOL > default "http".
    */
   otlpProtocol?: OtlpProtocol;
   /**
    * OTLP request headers (e.g. auth). Never logged or included in reports.
-   * Resolution: inline > TEMPORAL_OBSERVABILITY_OTLP_HEADERS > OTEL_EXPORTER_OTLP_HEADERS.
+   * Resolution: inline > profile-specific env var > TEMPORAL_OBSERVABILITY_OTLP_HEADERS >
+   * OTEL_EXPORTER_OTLP_HEADERS.
    */
   otlpHeaders?: Record<string, string>;
   /**
    * Metrics export interval in milliseconds. Must be a positive number.
-   * Resolution: inline > TEMPORAL_OBSERVABILITY_METRICS_EXPORT_INTERVAL_MS >
+   * Resolution: inline > profile-specific env var > TEMPORAL_OBSERVABILITY_METRICS_EXPORT_INTERVAL_MS >
    * OTEL_METRIC_EXPORT_INTERVAL > default 10000.
    */
   metricsExportIntervalMs?: number;
@@ -106,7 +107,7 @@ export interface StartupReport {
   /** Low-cardinality tags applied to every metric. */
   commonTags: Readonly<Record<string, string>>;
   /** Whether this call installed the runtime or found it already installed. */
-  runtimeInstallation: 'new' | 'existing';
+  runtimeInstallStatus: 'installed' | 'already_installed';
 }
 
 export interface ObservabilityHandle {

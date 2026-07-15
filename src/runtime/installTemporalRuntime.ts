@@ -14,7 +14,7 @@ export interface EnsureInstalledInput {
 }
 
 export interface EnsureInstalledResult {
-  status: 'new' | 'existing';
+  status: 'installed' | 'already_installed';
 }
 
 export interface RuntimeInstaller {
@@ -50,10 +50,10 @@ export function createRuntimeInstaller(install: InstallFn = defaultInstallFn): R
       if (installedSignature === null) {
         install(telemetryOptions);
         installedSignature = signature;
-        return { status: 'new' };
+        return { status: 'installed' };
       }
       if (installedSignature === signature) {
-        return { status: 'existing' };
+        return { status: 'already_installed' };
       }
       throw new RuntimeInstallConflictError(installedSignature, signature);
     },

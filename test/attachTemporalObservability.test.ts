@@ -71,12 +71,25 @@ describe('prometheus bind address resolution', () => {
 
 describe('vendor profile handling', () => {
   it('throws a clear MVP error for declared-but-unimplemented profiles', () => {
-    for (const profile of ['dynatrace', 'sumologic', 'dynatrace-oneagent'] as const) {
+    for (const profile of ['dynatrace', 'dynatrace-oneagent'] as const) {
       const { installer } = fakeInstaller();
       expect(() =>
         attachTemporalObservability(baseConfig({ vendorProfile: profile }), { installer, env: {} })
       ).toThrow(UnsupportedVendorProfileError);
     }
+  });
+
+  it('vendorProfile sumologic is now implemented', () => {
+    const { installer } = fakeInstaller();
+    expect(() =>
+      attachTemporalObservability(
+        baseConfig({
+          vendorProfile: 'sumologic',
+          otlpEndpoint: 'http://localhost:4318/v1/metrics',
+        }),
+        { installer, env: {} }
+      )
+    ).not.toThrow();
   });
 
   it('throws a config error for an unknown profile', () => {
@@ -109,8 +122,8 @@ describe('runtime install safety', () => {
     const second = attachTemporalObservability(baseConfig(), { installer, env: {} });
 
     expect(install).toHaveBeenCalledTimes(1);
-    expect(first.startupReport().runtimeInstallation).toBe('new');
-    expect(second.startupReport().runtimeInstallation).toBe('existing');
+    expect(first.startupReport().runtimeInstallStatus).toBe('installed');
+    expect(second.startupReport().runtimeInstallStatus).toBe('already_installed');
   });
 
   it('conflicting config throws RuntimeInstallConflictError', () => {
@@ -142,7 +155,7 @@ describe('startup report and worker options', () => {
         'metricsEndpoint',
         'namespace',
         'routingMode',
-        'runtimeInstallation',
+        'runtimeInstallStatus',
         'serviceName',
         'taskQueue',
         'vendorProfile',
@@ -163,7 +176,7 @@ describe('startup report and worker options', () => {
 
     const telemetry = install.mock.calls[0]![0] as any;
     expect(telemetry.metrics.globalTags).toEqual({
-      app_service_name: 'orders-worker',
+      service_name: 'orders-worker',
       environment: 'dev',
       namespace: 'default',
       task_queue: 'orders',

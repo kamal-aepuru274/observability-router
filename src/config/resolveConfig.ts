@@ -20,7 +20,7 @@ export interface NormalizedBaseConfig {
  */
 export function buildCommonTags(config: ObservabilityConfig): Record<string, string> {
   return {
-    app_service_name: config.serviceName,
+    service_name: config.serviceName,
     environment: config.environment,
     namespace: config.namespace,
     task_queue: config.taskQueue,

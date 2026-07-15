@@ -2,6 +2,7 @@ import { UnsupportedVendorProfileError } from '../errors';
 import type { VendorProfile } from '../types';
 import { otelProfile } from './otel';
 import { prometheusProfile } from './prometheus';
+import { sumologicProfile } from './sumologic';
 import type { VendorProfileModule } from './types';
 
 /**
@@ -26,7 +27,7 @@ function declaredNotImplemented(id: VendorProfile): VendorProfileModule {
 export const profileRegistry: Record<VendorProfile, VendorProfileModule> = {
   prometheus: prometheusProfile as VendorProfileModule,
   otel: otelProfile as VendorProfileModule,
+  sumologic: sumologicProfile as VendorProfileModule,
   dynatrace: declaredNotImplemented('dynatrace'),
-  sumologic: declaredNotImplemented('sumologic'),
   'dynatrace-oneagent': declaredNotImplemented('dynatrace-oneagent'),
 };
