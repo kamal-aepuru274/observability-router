@@ -4,13 +4,14 @@ import { ObservabilityConfigError } from './errors';
 /** Every profile the type system knows about. */
 export const KNOWN_VENDOR_PROFILES: readonly VendorProfile[] = [
   'prometheus',
-  'dynatrace-otel',
-  'sumologic-otel',
+  'otel',
+  'dynatrace',
+  'sumologic',
   'dynatrace-oneagent',
 ];
 
 /** Profiles that are actually implemented in this version. */
-export const IMPLEMENTED_VENDOR_PROFILES: readonly VendorProfile[] = ['prometheus'];
+export const IMPLEMENTED_VENDOR_PROFILES: readonly VendorProfile[] = ['prometheus', 'otel'];
 
 const ROUTING_MODES: readonly RoutingMode[] = ['direct', 'collector'];
 const CONFIG_SOURCES: readonly ConfigSource[] = ['env', 'inline'];

@@ -19,6 +19,21 @@ export {
 } from './profiles/prometheus';
 
 export {
+  OTLP_ENDPOINT_ENV,
+  OTLP_PROTOCOL_ENV,
+  OTLP_HEADERS_ENV,
+  METRICS_EXPORT_INTERVAL_ENV,
+  STANDARD_OTLP_METRICS_ENDPOINT_ENV,
+  STANDARD_OTLP_ENDPOINT_ENV,
+  STANDARD_OTLP_PROTOCOL_ENV,
+  STANDARD_OTLP_HEADERS_ENV,
+  STANDARD_METRIC_EXPORT_INTERVAL_ENV,
+  DEFAULT_OTLP_PROTOCOL,
+  DEFAULT_METRICS_EXPORT_INTERVAL_MS,
+  parseHeaderString,
+} from './profiles/otel';
+
+export {
   KNOWN_VENDOR_PROFILES,
   IMPLEMENTED_VENDOR_PROFILES,
 } from './validation';
@@ -37,5 +52,6 @@ export type {
   RoutingMode,
   ConfigSource,
   PrometheusInlineConfig,
+  OtlpProtocol,
   BindAddressSource,
 } from './types';

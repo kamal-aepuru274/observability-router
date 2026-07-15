@@ -10,9 +10,9 @@ export class ObservabilityConfigError extends Error {
 export class UnsupportedVendorProfileError extends Error {
   constructor(profile: string) {
     super(
-      `Vendor profile "${profile}" is declared but not implemented in version 1. ` +
-        `Only "prometheus" is implemented. ` +
-        `Planned profiles: dynatrace-otel, sumologic-otel, dynatrace-oneagent.`
+      `vendorProfile "${profile}" is declared but not implemented in this version. ` +
+        `Use "otel" for generic OTLP export, or "prometheus" for a scrape endpoint. ` +
+        `The "${profile}" profile may be implemented in a later version.`
     );
     this.name = 'UnsupportedVendorProfileError';
   }

@@ -50,8 +50,10 @@ export function attachTemporalObservability(
 
   const report = buildStartupReport({
     base,
+    exporter: profile.exporter ?? 'prometheus',
     metricsEndpoint: profile.describeTarget(resolved),
     runtimeInstallation: installResult.status,
+    extras: profile.reportExtras?.(resolved),
   });
 
   return {

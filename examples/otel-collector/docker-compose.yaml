@@ -1,0 +1,19 @@
+# Local OpenTelemetry Collector with debug exporter.
+#
+# Run:
+#   docker compose -f examples/otel-collector/docker-compose.yaml up
+#
+# Then start a worker with vendorProfile: 'otel' and
+#   TEMPORAL_OBSERVABILITY_OTLP_ENDPOINT=http://localhost:4318/v1/metrics
+#   TEMPORAL_OBSERVABILITY_OTLP_PROTOCOL=http
+# and watch metrics printed in this container's logs.
+
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ['--config=/etc/otelcol-contrib/config.yaml']
+    volumes:
+      - ./collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - '4317:4317' # OTLP/gRPC
+      - '4318:4318' # OTLP/HTTP

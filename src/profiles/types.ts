@@ -1,5 +1,5 @@
 import type { RuntimeOptions } from '@temporalio/worker';
-import type { ObservabilityConfig, VendorProfile } from '../types';
+import type { ObservabilityConfig, StartupReport, VendorProfile } from '../types';
 
 /**
  * The metrics telemetry shape is DERIVED from the installed Temporal SDK type
@@ -17,6 +17,8 @@ export type MetricsTelemetryOptions = NonNullable<
 export interface VendorProfileModule<TResolved = unknown> {
   readonly id: VendorProfile;
   readonly implemented: boolean;
+  /** Which exporter this profile configures; surfaced in the startup report. */
+  readonly exporter?: StartupReport['exporter'];
   /** Resolve runtime values (inline > env > default) and validate them. */
   resolve(config: ObservabilityConfig, env: NodeJS.ProcessEnv): TResolved;
   /** Map resolved values + common tags to Temporal SDK metrics telemetry options. */
@@ -25,4 +27,9 @@ export interface VendorProfileModule<TResolved = unknown> {
   describeTarget(resolved: TResolved): string;
   /** Stable string used to detect duplicate vs conflicting runtime installs. */
   signature(resolved: TResolved, commonTags: Record<string, string>): string;
+  /**
+   * Optional extra fields for the startup report. MUST be secret-safe:
+   * booleans/identifiers only, never header values or tokens.
+   */
+  reportExtras?(resolved: TResolved): Partial<StartupReport>;
 }

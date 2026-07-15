@@ -36,6 +36,7 @@
   "devDependencies": {
     "@temporalio/worker": "^1.11.0",
     "@types/node": "^20.11.0",
+    "dotenv": "^17.4.2",
     "tsup": "^8.0.0",
     "tsx": "^4.23.0",
     "typescript": "^5.4.0",

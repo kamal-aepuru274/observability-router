@@ -25,6 +25,7 @@ export function buildCommonTags(config: ObservabilityConfig): Record<string, str
     namespace: config.namespace,
     task_queue: config.taskQueue,
     vendor_profile: config.vendorProfile,
+    routing_mode: config.routingMode ?? 'direct',
   };
 }
 

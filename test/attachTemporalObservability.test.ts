@@ -71,7 +71,7 @@ describe('prometheus bind address resolution', () => {
 
 describe('vendor profile handling', () => {
   it('throws a clear MVP error for declared-but-unimplemented profiles', () => {
-    for (const profile of ['dynatrace-otel', 'sumologic-otel', 'dynatrace-oneagent'] as const) {
+    for (const profile of ['dynatrace', 'sumologic', 'dynatrace-oneagent'] as const) {
       const { installer } = fakeInstaller();
       expect(() =>
         attachTemporalObservability(baseConfig({ vendorProfile: profile }), { installer, env: {} })
@@ -138,6 +138,7 @@ describe('startup report and worker options', () => {
         'commonTags',
         'configSource',
         'environment',
+        'exporter',
         'metricsEndpoint',
         'namespace',
         'routingMode',
@@ -147,6 +148,8 @@ describe('startup report and worker options', () => {
         'vendorProfile',
       ].sort()
     );
+
+    expect(report.exporter).toBe('prometheus');
 
     const serialized = JSON.stringify(report).toLowerCase();
     for (const forbidden of ['token', 'apikey', 'api_key', 'password', 'secret', 'authorization']) {
@@ -165,6 +168,7 @@ describe('startup report and worker options', () => {
       namespace: 'default',
       task_queue: 'orders',
       vendor_profile: 'prometheus',
+      routing_mode: 'direct',
     });
   });
 

@@ -48,6 +48,7 @@ function withGlobalTags(
 export const prometheusProfile: VendorProfileModule<ResolvedPrometheusConfig> = {
   id: 'prometheus',
   implemented: true,
+  exporter: 'prometheus',
 
   resolve(config, env) {
     // Priority: inline > env var > default.

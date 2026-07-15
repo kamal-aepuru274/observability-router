@@ -1,0 +1,70 @@
+# OpenTelemetry Collector configuration that forwards Temporal SDK metrics
+# to Dynatrace via OTLP/HTTP.
+#
+# Flow:
+#   Temporal Worker --OTLP/HTTP--> localhost:4318/v1/metrics
+#     --> Collector batch + cumulativetodelta
+#     --> Dynatrace OTLP metrics ingest endpoint
+#
+# Required environment variables (do NOT commit real values to git):
+#   DT_OTLP_ENDPOINT=https://<DT_ENV_ID>.live.dynatrace.com/api/v2/otlp
+#   DT_AUTH_HEADER=Api-Token dt0c01.YOUR_ACCESS_TOKEN_HERE
+#
+# For a Dynatrace service token (dt0s16.*) use:
+#   DT_AUTH_HEADER=Bearer dt0s16.YOUR_SERVICE_TOKEN_HERE
+#
+# Run:
+#   docker run --rm -p 4317:4317 -p 4318:4318 \
+#     -e DT_OTLP_ENDPOINT -e DT_AUTH_HEADER \
+#     -v "$(pwd)/examples/otel-collector/otel-collector-dynatrace.yaml:/etc/otelcol-contrib/config.yaml" \
+#     otel/opentelemetry-collector-contrib:latest
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+        # Allow CORS for local browser tooling if needed.
+        cors:
+          allowed_origins: ["*"]
+          allowed_headers: ["*"]
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+
+  # Dynatrace ingests delta temporality for OpenTelemetry sums/histograms.
+  # The Temporal SDK emits cumulative metrics by default, so convert them.
+  # This processor keeps state in memory; do not use it for multiple
+  # collectors writing the same metric stream without a shared state backend.
+  cumulativetodelta:
+    include:
+      match_type: regexp
+      metrics:
+        - ^temporal_.*$
+
+exporters:
+  debug:
+    verbosity: detailed
+
+  otlphttp/dynatrace:
+    endpoint: ${env:DT_OTLP_ENDPOINT}
+    headers:
+      Authorization: ${env:DT_AUTH_HEADER}
+    # Dynatrace expects delta temporality; cumulativetodelta handles conversion.
+    # The exporter sends retries automatically with backoff.
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [batch, cumulativetodelta]
+      exporters: [debug, otlphttp/dynatrace]

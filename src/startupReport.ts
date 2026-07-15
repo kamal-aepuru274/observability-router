@@ -3,8 +3,11 @@ import type { StartupReport } from './types';
 
 export interface BuildStartupReportInput {
   base: NormalizedBaseConfig;
+  exporter: StartupReport['exporter'];
   metricsEndpoint: string;
   runtimeInstallation: 'new' | 'existing';
+  /** Profile-specific safe fields (e.g. otlpProtocol, headersConfigured). */
+  extras?: Partial<StartupReport>;
 }
 
 /**
@@ -13,7 +16,7 @@ export interface BuildStartupReportInput {
  * tokens, headers, or credentials.
  */
 export function buildStartupReport(input: BuildStartupReportInput): StartupReport {
-  const { base, metricsEndpoint, runtimeInstallation } = input;
+  const { base, exporter, metricsEndpoint, runtimeInstallation, extras } = input;
   return {
     serviceName: base.serviceName,
     environment: base.environment,
@@ -22,7 +25,9 @@ export function buildStartupReport(input: BuildStartupReportInput): StartupRepor
     vendorProfile: base.vendorProfile,
     routingMode: base.routingMode,
     configSource: base.configSource,
+    exporter,
     metricsEndpoint,
+    ...extras,
     commonTags: { ...base.commonTags },
     runtimeInstallation,
   };
