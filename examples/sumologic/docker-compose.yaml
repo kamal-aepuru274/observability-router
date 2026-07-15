@@ -3,8 +3,8 @@
 # Replace the placeholder endpoint in collector-config.yaml with your real
 # Sumo Logic HTTP Source URL before starting.
 #
-# Run:
-#   docker compose -f examples/sumologic/docker-compose.yaml up
+# Run (from repo root to pick up .env):
+#   docker compose --env-file .env -f examples/sumologic/docker-compose.yaml up
 #
 # Then start a worker with vendorProfile: 'sumologic' and
 #   TEMPORAL_OBSERVABILITY_SUMOLOGIC_OTLP_ENDPOINT=http://localhost:4318/v1/metrics
@@ -14,6 +14,9 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     command: ['--config=/etc/otelcol-contrib/config.yaml']
+    environment:
+      # Set this to your Sumo Logic HTTP Source URL
+      - SUMOLOGIC_HTTP_SOURCE_URL=${SUMOLOGIC_HTTP_SOURCE_URL}
     volumes:
       - ./collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
     ports:

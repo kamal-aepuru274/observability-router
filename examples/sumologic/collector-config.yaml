@@ -30,14 +30,20 @@ processors:
 
 exporters:
   sumologic:
-    # Replace with your actual Sumo Logic HTTP Source URL.
-    endpoint: https://your-sumo-logic-http-source-endpoint
+    # Replace with your actual Sumo Logic HTTP Source URL from Step 1.
+    # Example: https://endpoint1.collection.us2.sumologic.com/receiver/v1/http/XXXXXXXX
+    endpoint: ${SUMOLOGIC_HTTP_SOURCE_URL}
     compression: gzip
     max_request_body_size: 2097152
+  debug:
+    verbosity: detailed
 
 service:
+  telemetry:
+    logs:
+      level: debug
   pipelines:
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [sumologic]
+      exporters: [sumologic, debug]

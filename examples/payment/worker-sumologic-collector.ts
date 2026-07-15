@@ -27,7 +27,7 @@ async function run(): Promise<void> {
   const obs = attachTemporalObservability({
     serviceName: 'payment-worker',
     environment: process.env.NODE_ENV ?? 'prod',
-    namespace: 'payments',
+    namespace: 'default',
     taskQueue: 'payment-tasks',
     vendorProfile: 'sumologic',
     routingMode: 'collector',
@@ -38,7 +38,7 @@ async function run(): Promise<void> {
   console.log(JSON.stringify(obs.startupReport(), null, 2));
 
   const worker = await Worker.create({
-    namespace: 'payments',
+    namespace: 'default',
     taskQueue: 'payment-tasks',
     workflowsPath: fileURLToPath(new URL('./workflows.ts', import.meta.url)),
     activities,
