@@ -28,15 +28,15 @@ Temporal Worker emits SDK metrics
       -> Prometheus / OpenTelemetry Collector / any OTLP-compatible backend
 ```
 
-## Version 2 scope
+## Profile scope
 
-| Profile | Status |
-|---|---|
-| `prometheus` | ✅ implemented (v1) |
-| `otel` | ✅ implemented (v2, generic OTLP export) |
-| `sumologic` | ✅ implemented (uses OTLP internally) |
-| `dynatrace` | declared, not implemented |
-| `dynatrace-oneagent` | declared, not implemented |
+| Profile | Exporter | Status |
+|---|---|---|
+| `prometheus` | Prometheus scrape | ✅ implemented (v1) |
+| `otel` | OTLP push | ✅ implemented (v2, generic OTLP export) |
+| `sumologic` | OTLP push | ✅ implemented (v4, uses OTLP internally) |
+| `dynatrace-oneagent` | Prometheus scrape | ✅ implemented (v5, Prometheus preset scraped by Dynatrace) |
+| `dynatrace` | OTLP push | declared, not implemented (use `otel` with the Dynatrace OTLP endpoint) |
 
 Unsupported profiles throw `UnsupportedVendorProfileError` with a clear message.
 
@@ -196,6 +196,76 @@ metricsExportIntervalMs: 10000
 runtimeInstallStatus: installed | already_installed
 ```
 
+### Dynatrace OneAgent (Prometheus scrape preset)
+
+Dynatrace does **not** derive Temporal-specific metrics (task latency, workflow
+failures, poller activity, ...) on its own — the **Temporal SDK must emit them**
+via a Prometheus `/metrics` endpoint. So `dynatrace-oneagent` is a thin preset
+over the `prometheus` profile: it exposes that endpoint, and **Dynatrace scrapes
+it**. No standalone Prometheus server is required.
+
+```
+VM:         Temporal Worker /metrics -> OneAgent Prometheus extension -> Dynatrace
+Kubernetes: Temporal Worker /metrics -> ActiveGate / OTel Collector    -> Dynatrace
+```
+
+The library does **not** talk to OneAgent, push to a vendor API, or implement
+scraping — the scrape is owned by Dynatrace infrastructure.
+
+```ts
+const obs = attachTemporalObservability({
+  serviceName: 'payment-worker',
+  environment: 'production',
+  namespace: 'default',
+  taskQueue: 'payment-tasks',
+  vendorProfile: 'dynatrace-oneagent',
+  // Optional: override the scrape bind address (default 0.0.0.0:9464).
+  // prometheus: { bindAddress: '0.0.0.0:9464' },
+});
+
+console.log(obs.startupReport());
+// {
+//   ...,
+//   vendorProfile: 'dynatrace-oneagent',
+//   exporter: 'prometheus',
+//   metricsEndpoint: 'http://0.0.0.0:9464/metrics',
+//   runtimeInstallStatus: 'installed',
+//   scrapeGuidance: 'Exposes a Prometheus /metrics endpoint for Dynatrace to scrape. ...'
+// }
+```
+
+Bind address resolution is identical to the `prometheus` profile: inline
+`prometheus.bindAddress` > `TEMPORAL_OBSERVABILITY_PROMETHEUS_BIND_ADDRESS` >
+default `0.0.0.0:9464` (scrape path `/metrics`).
+
+#### VM — OneAgent Prometheus extension
+
+On a VM with OneAgent installed, no Prometheus server is needed. Install a
+**Prometheus extension** from Dynatrace Hub and add a monitoring configuration
+that scrapes `http://localhost:9464/metrics` **locally** on the host's OneAgent
+(Extension Execution Controller). Metrics are enriched with host context. See
+`examples/dynatrace-oneagent/vm-oneagent-prometheus-extension.md`.
+
+#### Kubernetes — ActiveGate / OTel Collector / annotations
+
+On Kubernetes, OneAgent alone is **not** the recommended scraper. Use one of:
+
+- **Dynatrace scrape annotations** (`metrics.dynatrace.com/scrape: 'true'`,
+  `.../port`, `.../path`) so Dynatrace scrapes the pod's OpenMetrics endpoint.
+- The **Dynatrace OpenTelemetry Collector** (Target Allocator) — recommended for
+  high-volume / new deployments; scrapes Prometheus targets and ingests via OTLP.
+- An **ActiveGate** remote Prometheus extension.
+
+See `examples/dynatrace-oneagent/k8s-deployment.yaml`.
+
+#### Verify
+
+```bash
+npm run build
+npx tsx examples/dynatrace-oneagent/worker-basic.ts
+curl http://localhost:9464/metrics
+```
+
 ### Collector mode vs direct mode
 
 - **`collector`** — worker pushes OTLP to an OpenTelemetry Collector
@@ -225,6 +295,9 @@ runtimeInstallStatus: installed | already_installed
 | `metricsExportIntervalMs` | no | `10000` | positive number of milliseconds |
 
 \* required for `vendorProfile: 'otel'` or `vendorProfile: 'sumologic'`, but may come from env vars instead of inline.
+
+`vendorProfile: 'dynatrace-oneagent'` uses the same fields as `prometheus`
+(`prometheus.bindAddress` and the bind-address env var); OTLP fields do not apply.
 
 ### Prometheus bind address resolution
 
@@ -392,10 +465,10 @@ validation, so it is deferred until teams need it.
 Implemented as a thin OTLP preset. See `vendorProfile: 'sumologic'` and the
 Sumo-specific env var precedence above.
 
-### `dynatrace-oneagent` (not implemented yet)
+### `dynatrace-oneagent` (implemented, v5)
 
-OneAgent auto-instrumentation depends on host/infrastructure setup (agent
-presence, ingest paths) that the worker cannot self-configure. It should wait
-for platform/infra clarification on how the agent is deployed and how the SDK
-should hand off metrics — otherwise the library would encode assumptions it
-cannot validate.
+Implemented as a thin **Prometheus scrape preset**. Dynatrace does not derive
+Temporal-specific metrics on its own, so the worker must expose a Prometheus
+`/metrics` endpoint; Dynatrace scrapes it (VM: OneAgent Prometheus extension;
+K8s: ActiveGate / OTel Collector / scrape annotations). See the "Dynatrace
+OneAgent (Prometheus scrape preset)" section above and `examples/dynatrace-oneagent/`.

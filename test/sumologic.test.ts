@@ -416,13 +416,24 @@ describe('sumologic startup report and telemetry options', () => {
 });
 
 describe('unimplemented profiles', () => {
-  it('dynatrace-oneagent still throws not implemented', () => {
+  it('dynatrace (OTLP) still throws not implemented', () => {
     const { installer } = fakeInstaller();
     expect(() =>
-      attachTemporalObservability(
-        sumoConfig({ vendorProfile: 'dynatrace-oneagent' as any }),
-        { installer, env: {} }
-      )
+      attachTemporalObservability(sumoConfig({ vendorProfile: 'dynatrace' as any }), {
+        installer,
+        env: {},
+      })
     ).toThrow(UnsupportedVendorProfileError);
+  });
+
+  it('dynatrace-oneagent is implemented as a Prometheus exporter preset', () => {
+    const { install, installer } = fakeInstaller();
+    const handle = attachTemporalObservability(
+      { ...sumoConfig(), vendorProfile: 'dynatrace-oneagent' as any, otlpEndpoint: undefined },
+      { installer, env: {} }
+    );
+    // Exposes a Prometheus /metrics endpoint for Dynatrace to scrape.
+    expect(install).toHaveBeenCalledTimes(1);
+    expect(handle.startupReport().exporter).toBe('prometheus');
   });
 });

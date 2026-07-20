@@ -1,5 +1,6 @@
 import { UnsupportedVendorProfileError } from '../errors';
 import type { VendorProfile } from '../types';
+import { dynatraceOneAgentProfile } from './dynatraceOneAgent';
 import { otelProfile } from './otel';
 import { prometheusProfile } from './prometheus';
 import { sumologicProfile } from './sumologic';
@@ -29,5 +30,5 @@ export const profileRegistry: Record<VendorProfile, VendorProfileModule> = {
   otel: otelProfile as VendorProfileModule,
   sumologic: sumologicProfile as VendorProfileModule,
   dynatrace: declaredNotImplemented('dynatrace'),
-  'dynatrace-oneagent': declaredNotImplemented('dynatrace-oneagent'),
+  'dynatrace-oneagent': dynatraceOneAgentProfile as VendorProfileModule,
 };

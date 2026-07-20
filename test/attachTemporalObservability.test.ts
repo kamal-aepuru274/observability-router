@@ -71,12 +71,21 @@ describe('prometheus bind address resolution', () => {
 
 describe('vendor profile handling', () => {
   it('throws a clear MVP error for declared-but-unimplemented profiles', () => {
-    for (const profile of ['dynatrace', 'dynatrace-oneagent'] as const) {
+    for (const profile of ['dynatrace'] as const) {
       const { installer } = fakeInstaller();
       expect(() =>
         attachTemporalObservability(baseConfig({ vendorProfile: profile }), { installer, env: {} })
       ).toThrow(UnsupportedVendorProfileError);
     }
+  });
+
+  it('vendorProfile dynatrace-oneagent is implemented (Prometheus preset)', () => {
+    const { installer } = fakeInstaller();
+    const handle = attachTemporalObservability(
+      baseConfig({ vendorProfile: 'dynatrace-oneagent' }),
+      { installer, env: {} }
+    );
+    expect(handle.startupReport().exporter).toBe('prometheus');
   });
 
   it('vendorProfile sumologic is now implemented', () => {

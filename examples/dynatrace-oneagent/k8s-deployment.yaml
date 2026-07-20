@@ -1,0 +1,67 @@
+# Kubernetes: Temporal Worker -> ActiveGate / OTel Collector -> Dynatrace
+#
+# On Kubernetes, OneAgent alone is NOT the recommended Prometheus scraper.
+# The worker exposes a Prometheus /metrics endpoint and Dynatrace scrapes it via
+# one of these documented mechanisms:
+#
+#   (A) Dynatrace scrape ANNOTATIONS  — Dynatrace discovers and scrapes the pod
+#       (OpenMetrics format) using metrics.dynatrace.com/* annotations.
+#   (B) Dynatrace OpenTelemetry Collector (Target Allocator) — recommended for
+#       high-volume / new deployments; scrapes Prometheus targets and ingests
+#       into Dynatrace over OTLP.
+#   (C) ActiveGate remote Prometheus extension.
+#
+# No standalone Prometheus server is required. This manifest shows option (A).
+#
+# Apply:
+#   kubectl apply -f examples/dynatrace-oneagent/k8s-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-worker
+  labels:
+    app: payment-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-worker
+  template:
+    metadata:
+      labels:
+        app: payment-worker
+      annotations:
+        # (A) Dynatrace scrape annotations — tell Dynatrace to scrape this pod's
+        # Prometheus /metrics endpoint (OpenMetrics format).
+        metrics.dynatrace.com/scrape: 'true'
+        metrics.dynatrace.com/port: '9464'
+        metrics.dynatrace.com/path: '/metrics'
+    spec:
+      containers:
+        - name: payment-worker
+          image: payment-worker:latest
+          # The dynatrace-oneagent profile exposes the Temporal SDK Prometheus
+          # exporter on this port (default 0.0.0.0:9464).
+          ports:
+            - name: metrics
+              containerPort: 9464
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: TEMPORAL_OBSERVABILITY_PROMETHEUS_BIND_ADDRESS
+              value: 0.0.0.0:9464
+---
+# Optional Service (useful for ActiveGate / OTel Collector target discovery, option B/C).
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-worker-metrics
+  labels:
+    app: payment-worker
+spec:
+  selector:
+    app: payment-worker
+  ports:
+    - name: metrics
+      port: 9464
+      targetPort: metrics

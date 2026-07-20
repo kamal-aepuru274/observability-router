@@ -48,6 +48,8 @@ export {
   RuntimeInstallConflictError,
 } from './errors';
 
+export { dynatraceOneAgentProfile } from './profiles/dynatraceOneAgent';
+
 export type {
   ObservabilityConfig,
   ObservabilityHandle,

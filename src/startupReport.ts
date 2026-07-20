@@ -5,7 +5,7 @@ export interface BuildStartupReportInput {
   base: NormalizedBaseConfig;
   exporter: StartupReport['exporter'];
   metricsEndpoint: string;
-  runtimeInstallStatus: 'installed' | 'already_installed';
+  runtimeInstallStatus: StartupReport['runtimeInstallStatus'];
   /** Profile-specific safe fields (e.g. otlpProtocol, headersConfigured). */
   extras?: Partial<StartupReport>;
 }

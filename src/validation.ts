@@ -11,7 +11,12 @@ export const KNOWN_VENDOR_PROFILES: readonly VendorProfile[] = [
 ];
 
 /** Profiles that are actually implemented in this version. */
-export const IMPLEMENTED_VENDOR_PROFILES: readonly VendorProfile[] = ['prometheus', 'otel', 'sumologic'];
+export const IMPLEMENTED_VENDOR_PROFILES: readonly VendorProfile[] = [
+  'prometheus',
+  'otel',
+  'sumologic',
+  'dynatrace-oneagent',
+];
 
 const ROUTING_MODES: readonly RoutingMode[] = ['direct', 'collector'];
 const CONFIG_SOURCES: readonly ConfigSource[] = ['env', 'inline'];

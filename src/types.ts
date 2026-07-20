@@ -89,11 +89,11 @@ export interface StartupReport {
   vendorProfile: VendorProfile;
   routingMode: RoutingMode;
   configSource: ConfigSource;
-  /** Which exporter is active: "prometheus" or "otlp". */
+  /** Which exporter is active. */
   exporter: 'prometheus' | 'otlp';
   /**
-   * For Prometheus: the scrape endpoint, e.g. "http://0.0.0.0:9464/metrics".
-   * For OTEL: the resolved OTLP endpoint.
+   * For Prometheus (and the `dynatrace-oneagent` preset): the scrape endpoint,
+   * e.g. "http://0.0.0.0:9464/metrics". For OTEL: the resolved OTLP endpoint.
    */
   metricsEndpoint: string;
   /** OTEL only: resolved OTLP endpoint (same as metricsEndpoint for otel). */
@@ -108,6 +108,12 @@ export interface StartupReport {
   commonTags: Readonly<Record<string, string>>;
   /** Whether this call installed the runtime or found it already installed. */
   runtimeInstallStatus: 'installed' | 'already_installed';
+
+  /**
+   * `dynatrace-oneagent` preset only: human-readable guidance on how Dynatrace is
+   * expected to scrape the exposed Prometheus `/metrics` endpoint (VM vs K8s).
+   */
+  scrapeGuidance?: string;
 }
 
 export interface ObservabilityHandle {
