@@ -107,6 +107,29 @@ await worker.run();
 
 ### Generic OTEL via Collector (push)
 
+Start the shared local Collector from the repository root. Its default pipeline
+prints received metrics to the Collector logs:
+
+```bash
+docker compose up
+```
+
+Use the same stack for vendor pipelines by selecting a Collector config:
+
+```bash
+# Sumo Logic
+COLLECTOR_CONFIG=./examples/sumologic/collector-config.yaml \
+  SUMOLOGIC_HTTP_SOURCE_URL=https://... docker compose up
+
+# Dynatrace OTLP
+COLLECTOR_CONFIG=./examples/otel-collector/otel-collector-dynatrace.yaml \
+  DT_OTLP_ENDPOINT=https://<environment>.live.dynatrace.com/api/v2/otlp \
+  DT_AUTH_HEADER='Api-Token <token>' docker compose up
+```
+
+`prometheus` and `dynatrace-oneagent` do not use this OTLP Collector by default:
+they expose `/metrics` for a Prometheus-compatible scraper to collect.
+
 ```ts
 const obs = attachTemporalObservability({
   serviceName: 'payment-worker',
@@ -394,7 +417,7 @@ tagged with `service_name`, `environment`, `namespace`, `task_queue`,
 1. Start a local OpenTelemetry Collector with the provided debug config:
 
    ```bash
-   docker compose -f examples/otel-collector/docker-compose.yaml up
+   docker compose up
    # or plain Docker:
    docker run --rm -p 4317:4317 -p 4318:4318 \
      -v "$(pwd)/examples/otel-collector/collector-config.yaml:/etc/otelcol-contrib/config.yaml" \
@@ -416,7 +439,7 @@ tagged with `service_name`, `environment`, `namespace`, `task_queue`,
 1. Start the debug OpenTelemetry Collector:
 
    ```bash
-   docker compose -f examples/otel-collector/docker-compose.yaml up
+   docker compose up
    ```
 
 2. Run the Sumo Logic collector-mode example:

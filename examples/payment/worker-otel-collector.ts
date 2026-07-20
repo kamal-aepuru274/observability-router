@@ -2,7 +2,7 @@
  * Payment Worker — OTEL via local OpenTelemetry Collector.
  *
  * 1. Start the Collector:
- *      docker compose -f examples/otel-collector/docker-compose.yaml up
+ *      docker compose up
  *
  * 2. Set env (or rely on the inline-free env resolution):
  *      TEMPORAL_OBSERVABILITY_OTLP_ENDPOINT=http://localhost:4318/v1/metrics

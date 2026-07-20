@@ -18,6 +18,10 @@
 #     -e DT_OTLP_ENDPOINT -e DT_AUTH_HEADER \
 #     -v "$(pwd)/examples/otel-collector/otel-collector-dynatrace.yaml:/etc/otelcol-contrib/config.yaml" \
 #     otel/opentelemetry-collector-contrib:latest
+#
+# Or with the shared Docker Compose stack:
+#   COLLECTOR_CONFIG=./examples/otel-collector/otel-collector-dynatrace.yaml \
+#     docker compose up
 
 receivers:
   otlp:

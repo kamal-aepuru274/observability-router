@@ -8,8 +8,8 @@
 #     -v "$(pwd)/examples/otel-collector/collector-config.yaml:/etc/otelcol-contrib/config.yaml" \
 #     otel/opentelemetry-collector-contrib:latest
 #
-# Or with Docker Compose:
-#   docker compose -f examples/otel-collector/docker-compose.yaml up
+# Or with the shared Docker Compose stack:
+#   docker compose up
 
 receivers:
   otlp:

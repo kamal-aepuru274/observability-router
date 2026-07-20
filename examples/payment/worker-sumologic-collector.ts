@@ -5,7 +5,7 @@
  * forwards to Sumo Logic (or a debug exporter while you verify locally).
  *
  * 1. Start the Collector:
- *      docker compose -f examples/otel-collector/docker-compose.yaml up
+ *      COLLECTOR_CONFIG=./examples/sumologic/collector-config.yaml docker compose up
  *
  * 2. Set env (or rely on env resolution):
  *      TEMPORAL_OBSERVABILITY_SUMOLOGIC_OTLP_ENDPOINT=http://localhost:4318/v1/metrics

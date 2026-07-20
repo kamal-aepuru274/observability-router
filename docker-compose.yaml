@@ -1,0 +1,33 @@
+# Shared local OpenTelemetry Collector for every OTLP-based profile.
+#
+# The default configuration writes received metrics to the Collector debug logs.
+# Select a vendor pipeline by setting COLLECTOR_CONFIG before `docker compose up`:
+#
+#   # Generic OTLP / local verification (default)
+#   docker compose up
+#
+#   # Sumo Logic
+#   COLLECTOR_CONFIG=./examples/sumologic/collector-config.yaml \
+#     SUMOLOGIC_HTTP_SOURCE_URL=https://... docker compose up
+#
+#   # Dynatrace OTLP
+#   COLLECTOR_CONFIG=./examples/otel-collector/otel-collector-dynatrace.yaml \
+#     DT_OTLP_ENDPOINT=https://<environment>.live.dynatrace.com/api/v2/otlp \
+#     DT_AUTH_HEADER='Api-Token <token>' docker compose up
+#
+# Prometheus-scrape profiles (`prometheus`, `dynatrace-oneagent`) do not send
+# OTLP to this Collector. They expose /metrics for Prometheus, OneAgent,
+# ActiveGate, or a Prometheus receiver in an OTel Collector to scrape.
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ['--config=/etc/otelcol-contrib/config.yaml']
+    environment:
+      SUMOLOGIC_HTTP_SOURCE_URL: ${SUMOLOGIC_HTTP_SOURCE_URL:-}
+      DT_OTLP_ENDPOINT: ${DT_OTLP_ENDPOINT:-}
+      DT_AUTH_HEADER: ${DT_AUTH_HEADER:-}
+    volumes:
+      - ${COLLECTOR_CONFIG:-./examples/otel-collector/collector-config.yaml}:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - '4317:4317' # OTLP/gRPC
+      - '4318:4318' # OTLP/HTTP

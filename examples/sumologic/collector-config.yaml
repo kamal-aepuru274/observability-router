@@ -14,8 +14,8 @@
 #     -v "$(pwd)/examples/sumologic/collector-config.yaml:/etc/otelcol-contrib/config.yaml" \
 #     otel/opentelemetry-collector-contrib:latest
 #
-# Or with Docker Compose:
-#   docker compose -f examples/sumologic/docker-compose.yaml up
+# Or with the shared Docker Compose stack:
+#   COLLECTOR_CONFIG=./examples/sumologic/collector-config.yaml docker compose up
 
 receivers:
   otlp:
