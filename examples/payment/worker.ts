@@ -2,7 +2,7 @@
  * Payment Worker
  *
  * Wires up Temporal observability (Prometheus on :9464) then starts the worker
- * polling the `payments` task queue.
+ * polling the `payment-tasks` task queue.
  *
  * Run:
  *   npx tsx examples/payment/worker.ts
@@ -21,7 +21,7 @@ async function run(): Promise<void> {
     serviceName: 'payment-worker',
     environment: process.env.NODE_ENV ?? 'dev',
     namespace: 'default',
-    taskQueue: 'payments',
+    taskQueue: 'payment-tasks',
     vendorProfile: 'prometheus',
   });
 
@@ -31,7 +31,7 @@ async function run(): Promise<void> {
 
   const worker = await Worker.create({
     namespace: 'default',
-    taskQueue: 'payments',
+    taskQueue: 'payment-tasks',
     workflowsPath: fileURLToPath(new URL('./workflows.ts', import.meta.url)),
     activities,
     ...obs.workerOptions(),
